@@ -1,16 +1,66 @@
 services:
-  n8n-projeto:
+  n8n:
+    container_name: n8n
     image: n8nio/n8n
     ports:
       - "5678:5678"
     volumes:
-      - ./:/home/node/.n8n
+      - n8n:/home/node/.n8n
     environment:
       GENERIC_TIMEZONE: America/Sao_Paulo
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      N8N_HOST: ${N8N_HOST}
+      N8N_LOG_LEVEL: debug
+      N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE: true
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      PUPPETEER_ARGS: "--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage"
+      NODE_FUNCTION_ALLOW_BUILTIN: canvas
+      NODE_FUNCTION_ALLOW_EXTERNAL: canvas
+      N8N_ENABLE_V8_CODE_NODE: true
     restart: unless-stopped
     networks:
-      - n8n-projeto
-    
+      - evolution-net
+
+  api:
+    container_name: evolution_api
+    image: atendai/evolution-api:latest
+    restart: always
+    ports:
+      - "8081:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - evolution-net
+    env_file:
+      - .env
+
+  postgres:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: typebot
+      POSTGRES_DB: evolution_db
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - evolution-net
+      - default
+
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6380:6379"
+    networks:
+      - evolution-net
+      - default
+
+volumes:
+  evolution_instances:
+  pg_data:
+  n8n:
+
 networks:
-  n8n-projeto:
+  evolution-net:
     driver: bridge
